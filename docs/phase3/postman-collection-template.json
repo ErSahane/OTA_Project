@@ -1,0 +1,32 @@
+{
+  "info": {
+    "name": "AstraVoyage OTA API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        { "name": "Login", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/auth/login" } }
+      ]
+    },
+    {
+      "name": "Flight Search",
+      "item": [
+        { "name": "Search Flights", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/flight-search/search" } }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        { "name": "Create Booking", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/bookings" } }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.astrovoyage.example.com"
+    }
+  ]
+}

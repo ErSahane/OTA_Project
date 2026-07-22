@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: astrovoyage
+      MYSQL_USER: astrovoyage
+      MYSQL_PASSWORD: astrovoyage
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
