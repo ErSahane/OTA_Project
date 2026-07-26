@@ -1,1 +1,16 @@
-"use client";\n\nimport React, { ReactNode } from 'react';\nimport { QueryClient, QueryClientProvider } from '@tanstack/react-query';\nimport { AuthProvider } from './auth/AuthProvider';\n\n// Instantiate QueryClient once per app render\nconst queryClient = new QueryClient();\n\nexport default function Providers({ children }: { children: ReactNode }) {\n  return (\n    <QueryClientProvider client={queryClient}>\n      <AuthProvider>{children}</AuthProvider>\n    </QueryClientProvider>\n  );\n}\n
+"use client";
+
+import React, { ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './auth/AuthProvider';
+
+// Instantiate QueryClient once per app render
+const queryClient = new QueryClient();
+
+export default function Providers({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
+  );
+}

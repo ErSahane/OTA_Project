@@ -1,3 +1,5 @@
+// frontend/shared/auth/AuthProvider.tsx
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -26,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  // Initialise from storage and verify token
+  // Initialise from storage and verify token via backend
   useEffect(() => {
     const stored = TokenStorage.getToken();
     if (stored) {
@@ -42,9 +44,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     const response = await api.post('/auth/login/', { email, password });
-    const jwt = response.data.access;
+    const jwt: string = response.data.access;
     TokenStorage.setToken(jwt);
     const payload = jwtDecode<JwtPayload>(jwt);
     const authUser: AuthUser = {
