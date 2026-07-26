@@ -33,8 +33,12 @@ INSTALLED_APPS = [
     "pricing.apps.PricingConfig",
     "booking.apps.BookingConfig",
     "ticketing.apps.TicketingConfig",
+    "payment.apps.PaymentConfig",
     "cancellation.apps.CancellationConfig",
 ]
+
+PAYMENT_DEFAULT_GATEWAY = "razorpay"
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -84,11 +88,12 @@ else:
             "PASSWORD": env("DB_PASSWORD", default="astrovoyage"),
             "HOST": env("DB_HOST", default="db"),
             "PORT": env("DB_PORT", default="3306"),
+            "OPTIONS": {"init_command": "SET default_storage_engine=INNODB"},
         }
     }
 
-REDIS_URL = env("REDIS_URL", default="redis://redis:6379/0")
-USE_REDIS = env.bool("USE_REDIS", default=False)
+REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+USE_REDIS = env.bool("USE_REDIS", default=True)
 if USE_REDIS:
     CACHES = {
         "default": {

@@ -13,7 +13,7 @@ class CancellationInitiateSerializer(serializers.Serializer):
         default=CancellationRequest.TYPE_FULL,
     )
     passenger_ids = serializers.ListField(
-        child=serializers.UUIDField(),
+        child=serializers.IntegerField(),
         required=False,
         allow_empty=True,
         default=list,

@@ -1,6 +1,7 @@
 Django>=5.0,<5.1
 celery>=5.4,<5.5
 djangorestframework>=3.15,<3.16
+razorpay>=2.0,<3.0
 djangorestframework-simplejwt>=5.2,<5.3
 django-redis>=5.0,<5.1
 mysqlclient>=2.2,<2.3

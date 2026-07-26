@@ -41,11 +41,6 @@ class CancellationRequest(models.Model):
 
     # Partial cancellation scoping
     passengers = models.ManyToManyField(BookingPassenger, blank=True, related_name="cancellation_requests")
-    passenger_ids = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Passenger IDs (integers) to cancel (required for partial_passengers type).",
-    )
     cancelled_segment_indexes = models.JSONField(
         default=list,
         blank=True,
