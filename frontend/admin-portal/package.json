@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.5.7",
     "@tanstack/react-query": "^5.28.0",
     "@tanstack/react-table": "^8.15.0",
     "axios": "^1.18.1",
@@ -18,7 +20,9 @@
     "jwt-decode": "^3.1.2",
     "next": "16.2.12",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.83.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
