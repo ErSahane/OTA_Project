@@ -13,4 +13,8 @@ urlpatterns = [
     path("api/integrations/", include("integrations.urls")),
     path("api/master-data/", include("master_data.urls")),
     path("api/v1/flight-search/", include("flight_search.urls")),
+    path("api/v1/pricing/", include("pricing.urls")),
+    path("api/v1/bookings/", include("booking.urls")),
+    path("api/v1/ticketing/", include("ticketing.urls")),
+    path("api/v1/cancellations/", include("cancellation.urls")),
 ]

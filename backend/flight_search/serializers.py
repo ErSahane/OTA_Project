@@ -1,33 +1,51 @@
 from datetime import date
+from decimal import Decimal
+
+from django.db import transaction
 from rest_framework import serializers
 
 from master_data.models import Airport, CabinClass, City
 from .models import FlightSearchQuery, FlightSearchSegment
 
+TRIP_TYPES = ("one-way", "round-trip", "multi-city")
+MAX_PASSENGERS = 9
+
 
 class FlightSearchSegmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlightSearchSegment
-        fields = ["origin", "destination", "departure_date", "return_date"]
+        fields = ("origin", "destination", "departure_date", "return_date")
+
+    @staticmethod
+    def _location(value, field):
+        code = value.strip().upper()
+        if not (Airport.objects.filter(code=code, is_deleted=False).exists() or City.objects.filter(code=code, is_deleted=False).exists()):
+            raise serializers.ValidationError(f"Invalid {field} code: {value}.")
+        return code
 
     def validate_origin(self, value):
-        val = value.upper()
-        if not (Airport.objects.filter(code=val, is_deleted=False).exists() or 
-                City.objects.filter(code=val, is_deleted=False).exists()):
-            raise serializers.ValidationError(f"Invalid origin code: {value}. Must be a valid airport or city.")
-        return val
+        return self._location(value, "origin")
 
     def validate_destination(self, value):
-        val = value.upper()
-        if not (Airport.objects.filter(code=val, is_deleted=False).exists() or 
-                City.objects.filter(code=val, is_deleted=False).exists()):
-            raise serializers.ValidationError(f"Invalid destination code: {value}. Must be a valid airport or city.")
-        return val
+        return self._location(value, "destination")
 
     def validate_departure_date(self, value):
         if value < date.today():
             raise serializers.ValidationError("Departure date cannot be in the past.")
         return value
+
+    def validate(self, attrs):
+        if attrs["origin"] == attrs["destination"]:
+            raise serializers.ValidationError("Origin and destination must be different.")
+        return attrs
+
+
+class FlightSearchHistorySerializer(serializers.ModelSerializer):
+    segments = FlightSearchSegmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FlightSearchQuery
+        fields = ("id", "trip_type", "cabin_class", "passenger_adults", "passenger_children", "passenger_infants", "segments", "created_at")
 
 
 class FlightSearchQuerySerializer(serializers.ModelSerializer):
@@ -35,66 +53,66 @@ class FlightSearchQuerySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FlightSearchQuery
-        fields = ["trip_type", "cabin_class", "passenger_adults", "passenger_children", "passenger_infants", "segments"]
+        fields = ("trip_type", "cabin_class", "passenger_adults", "passenger_children", "passenger_infants", "segments")
+        extra_kwargs = {"passenger_adults": {"min_value": 1}, "passenger_children": {"min_value": 0}, "passenger_infants": {"min_value": 0}}
 
     def validate_trip_type(self, value):
-        choices = ["one-way", "round-trip", "multi-city"]
-        if value.lower() not in choices:
-            raise serializers.ValidationError(f"Invalid trip_type: {value}. Choices are {choices}")
-        return value.lower()
+        value = value.strip().lower()
+        if value not in TRIP_TYPES:
+            raise serializers.ValidationError(f"trip_type must be one of: {', '.join(TRIP_TYPES)}.")
+        return value
 
     def validate_cabin_class(self, value):
-        val = value.upper()
-        if not CabinClass.objects.filter(code=val, is_deleted=False).exists():
-            raise serializers.ValidationError(f"Invalid cabin class: {value}. Must exist in master data CabinClass.")
-        return val
+        value = value.strip().upper()
+        if not CabinClass.objects.filter(code=value, is_deleted=False).exists():
+            raise serializers.ValidationError("Invalid cabin class.")
+        return value
 
-    def validate(self, data):
-        adults = data.get("passenger_adults", 1)
-        infants = data.get("passenger_infants", 0)
-
-        if adults < 1:
-            raise serializers.ValidationError("At least 1 adult passenger is required.")
+    def validate(self, attrs):
+        adults, children, infants = attrs["passenger_adults"], attrs.get("passenger_children", 0), attrs.get("passenger_infants", 0)
+        segments, trip_type = attrs["segments"], attrs["trip_type"]
+        if adults + children + infants > MAX_PASSENGERS:
+            raise serializers.ValidationError(f"A search supports at most {MAX_PASSENGERS} passengers.")
         if infants > adults:
             raise serializers.ValidationError("Number of infants cannot exceed the number of adults.")
-
-        trip_type = data.get("trip_type")
-        segments = data.get("segments", [])
-
-        if not segments:
-            raise serializers.ValidationError("At least one travel segment is required.")
-
         if trip_type == "one-way":
-            if len(segments) != 1:
-                raise serializers.ValidationError("One-way search must have exactly 1 segment.")
+            if len(segments) != 1 or segments[0].get("return_date"):
+                raise serializers.ValidationError("One-way search requires exactly one segment and no return date.")
         elif trip_type == "round-trip":
-            if len(segments) != 1:
-                raise serializers.ValidationError("Round-trip search must have exactly 1 segment.")
-            seg = segments[0]
-            ret_date = seg.get("return_date")
-            dep_date = seg.get("departure_date")
-            if not ret_date:
-                raise serializers.ValidationError("Return date is required for round-trip search.")
-            if ret_date < dep_date:
-                raise serializers.ValidationError("Return date must be equal to or after the departure date.")
-        elif trip_type == "multi-city":
+            if len(segments) != 1 or not segments[0].get("return_date"):
+                raise serializers.ValidationError("Round-trip search requires one segment and a return date.")
+            if segments[0]["return_date"] < segments[0]["departure_date"]:
+                raise serializers.ValidationError("Return date cannot precede departure date.")
+        else:
             if len(segments) < 2:
-                raise serializers.ValidationError("Multi-city search must have at least 2 segments.")
-            for i in range(len(segments) - 1):
-                if segments[i+1]["departure_date"] < segments[i]["departure_date"]:
-                    raise serializers.ValidationError(
-                        f"Segment {i+2} departure date cannot be before segment {i+1} departure date."
-                    )
+                raise serializers.ValidationError("Multi-city search must contain at least two segments.")
+            previous = None
+            for segment in segments:
+                if segment.get("return_date") or (previous and segment["departure_date"] < previous):
+                    raise serializers.ValidationError("Multi-city segments cannot have return dates and must be chronological.")
+                previous = segment["departure_date"]
+        return attrs
 
-        return data
-
+    @transaction.atomic
     def create(self, validated_data):
-        segments_data = validated_data.pop("segments")
-        user = self.context.get("request").user if "request" in self.context else None
-        if user and not user.is_authenticated:
-            user = None
-
+        segments = validated_data.pop("segments")
+        request = self.context.get("request")
+        user = request.user if request and request.user.is_authenticated else None
         query = FlightSearchQuery.objects.create(user=user, **validated_data)
-        for idx, seg_data in enumerate(segments_data):
-            FlightSearchSegment.objects.create(query=query, sequence=idx, **seg_data)
+        FlightSearchSegment.objects.bulk_create([FlightSearchSegment(query=query, sequence=index, **segment) for index, segment in enumerate(segments)])
         return query
+
+class FlightSearchOptionsSerializer(serializers.Serializer):
+    providers = serializers.ListField(child=serializers.CharField(max_length=100), required=False)
+    airlines = serializers.ListField(child=serializers.CharField(max_length=10), required=False)
+    min_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False)
+    max_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False)
+    max_stops = serializers.IntegerField(min_value=0, max_value=5, required=False)
+    sort = serializers.ChoiceField(choices=("price", "-price", "duration", "-duration", "stops", "-stops"), default="price")
+    page = serializers.IntegerField(min_value=1, default=1)
+    page_size = serializers.IntegerField(min_value=1, max_value=100, default=20)
+
+    def validate(self, attrs):
+        if attrs.get("min_price") is not None and attrs.get("max_price") is not None and attrs["min_price"] > attrs["max_price"]:
+            raise serializers.ValidationError("min_price cannot exceed max_price.")
+        return attrs

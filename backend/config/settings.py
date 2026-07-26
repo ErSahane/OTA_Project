@@ -30,6 +30,10 @@ INSTALLED_APPS = [
     "integrations.apps.IntegrationsConfig",
     "master_data.apps.MasterDataConfig",
     "flight_search.apps.FlightSearchConfig",
+    "pricing.apps.PricingConfig",
+    "booking.apps.BookingConfig",
+    "ticketing.apps.TicketingConfig",
+    "cancellation.apps.CancellationConfig",
 ]
 
 MIDDLEWARE = [

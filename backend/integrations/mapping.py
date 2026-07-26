@@ -12,7 +12,14 @@ class ResponseMapper:
             "data": payload.get("data", []),
             "booking_reference": payload.get("booking_reference"),
             "cancelled": payload.get("cancelled", False),
+            "pnr": payload.get("pnr"),
+            "ticket_number": payload.get("ticket_number"),
+            "itinerary": payload.get("itinerary"),
+            "voided": payload.get("voided", False),
         }
+        for k, v in payload.items():
+            if k not in normalized:
+                normalized[k] = v
         return normalized
 
 

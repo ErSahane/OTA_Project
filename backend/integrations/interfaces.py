@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -17,4 +17,16 @@ class ProviderInterface(ABC):
 
     @abstractmethod
     def cancel_booking(self, payload: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def issue_ticket(self, payload: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_pnr(self, payload: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def void_ticket(self, payload: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError

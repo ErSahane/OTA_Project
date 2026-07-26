@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 
 
 class ProviderConfiguration(models.Model):
@@ -6,6 +6,7 @@ class ProviderConfiguration(models.Model):
     provider_type = models.CharField(max_length=100, default="mock")
     endpoint = models.URLField(blank=True)
     api_key = models.CharField(max_length=255, blank=True)
+    priority = models.PositiveIntegerField(default=100, help_text="Lower values are queried and ranked first.")
     timeout_seconds = models.PositiveIntegerField(default=10)
     retry_count = models.PositiveIntegerField(default=3)
     enabled = models.BooleanField(default=True)
@@ -14,6 +15,7 @@ class ProviderConfiguration(models.Model):
 
     class Meta:
         db_table = "provider_configuration"
+        ordering = ("priority", "provider_name")
 
     def __str__(self):
         return self.provider_name
